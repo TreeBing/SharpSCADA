@@ -63,13 +63,14 @@ Visual Studio/Blend：做为组态设计器，推荐VS2010，VS2015版本。
 
 * 已发布：
 内存数据库
-Modbus TCP/RTU
-OPC DA
-Siemens S300/200/1200/1500
-
+Modbus TCP/RTU、
+OPC DA、
+Siemens S300/200/1200/1500、
+Panasonic 、
+AB EtherNetIP、
+Omron UDP
 * 后续发布：
-DDE
-AB EtherNetIP
+DDE、
 Mitsubishi 
 
 文件目录
@@ -96,7 +97,7 @@ libnodave：西门子驱动开源库(https://github.com/netdata/libnodave)
 
 * Program目录[存放源代码]：
 BatchCoreTest工程为网关服务器测试代码（控制台显示）。
-BatchCoreService工程同BatchCoreTest，但可编译为Windos服务。
+BatchCoreService工程同BatchCoreTest，但可编译为Windows服务。
 DataService工程为框架及主要接口组件。
 CoreTest工程为样例文件。包含一系列界面元素。
 HMIControl工程为图元组件。可支持工具栏拖放。
@@ -111,11 +112,11 @@ ClientDriver、ModbusDriver、OPCDriver、FileDriver为各类通讯组件。
 
 计划：
 -------------
-支持.NET Core。
-实现更多的通讯接口：如欧姆龙、OPC UA等。
-更丰富的图元组件：如楼宇自控、化工等各行业。
-功能扩展：如进一步处理数据、过程控制等。
-安全性：安全性是重中之重，目前做的很不够。
+* 支持.NET Core。(目前已有测试版在CoreApp文件夹）
+* 实现更多的通讯接口：如欧姆龙、OPC UA等。
+* 更丰富的图元组件：如楼宇自控、化工等各行业。
+* 功能扩展：如进一步处理数据、过程控制等。
+* 安全性：安全性是重中之重，目前做的很不够。
 
 Showcase
 -------------
@@ -131,6 +132,10 @@ http://www.cnblogs.com/evilcat/
 -------------
 hijkl1999@yeah.net
 QQ群：102486275
+
+贡献代码
+-------------
+[topmail](https://github.com/topmail),  [qwe7922142](https://github.com/qwe7922142),  [tonyshen277](https://github.com/tonyshen277),  [yangjingzhao123](https://github.com/yangjingzhao123), [xiebinghai](https://github.com/xiebinghai)
 
 License
 -------------

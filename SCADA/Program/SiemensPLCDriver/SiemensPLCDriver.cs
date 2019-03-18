@@ -45,7 +45,7 @@ namespace SiemensPLCDriver
             }
         }
 
-        int _timeOut;
+        int _timeOut = 1000;
         public int TimeOut
         {
             get
@@ -79,13 +79,33 @@ namespace SiemensPLCDriver
             }
         }
 
-        public SiemensTCPReader(IDataServer server, short id, string name, string IP, int timeOut = 10000, string rack = "0", string slot = "0")
+        public int Rack
+        {
+            get
+            {
+                return _rack;
+            }
+            set
+            {
+                _rack = value;
+            }
+        }
+
+        public int Slot
+        {
+            get
+            {
+                return _slot;
+            }
+            set
+            {
+                _slot = value;
+            }
+        }
+
+        public SiemensTCPReader(IDataServer server, short id, string name)
         {
             _id = id;
-            int.TryParse(rack, out _rack);
-            int.TryParse(slot, out _slot);
-            _IP = IP;
-            _timeOut = timeOut;
             _server = server;
             _name = name;
         }
@@ -133,6 +153,7 @@ namespace SiemensPLCDriver
                 case DataType.SHORT:
                     return string.Concat(addr, "W", address.Start);
                 case DataType.FLOAT:
+                case DataType.DWORD:
                 case DataType.INT:
                     return string.Concat(addr, "D", address.Start);
                 default:
@@ -350,9 +371,9 @@ namespace SiemensPLCDriver
                 if (res == 0)
                     return buffer;
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null)
+                if (OnError != null)
                 {
-                    OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res))); _closeTime = DateTime.Now;
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res))); _closeTime = DateTime.Now;
                 }
             }
             return null;
@@ -371,9 +392,9 @@ namespace SiemensPLCDriver
                 if (res == 0)
                     return new ItemData<string>(Utility.ConvertToString(buffer), 0, QUALITIES.QUALITY_GOOD);
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null)
+                if (OnError != null)
                 {
-                    OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res)));
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res)));
                 }
             }
             return new ItemData<string>(string.Empty, 0, QUALITIES.QUALITY_NOT_CONNECTED);
@@ -390,12 +411,50 @@ namespace SiemensPLCDriver
                     if (res == 0) return new ItemData<int>(dc.getS32(), 0, QUALITIES.QUALITY_GOOD);
                 }
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null)
+                if (OnError != null)
                 {
-                    OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res)));
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res)));
                 }
             }
             return new ItemData<int>(0, 0, QUALITIES.QUALITY_NOT_CONNECTED); ;
+        }
+
+        public ItemData<uint> ReadUInt32(DeviceAddress address)
+        {
+            if (dc != null)
+            {
+                int res = -1;
+                lock (_async)
+                {
+                    res = dc.readBytes(address.Area, address.DBNumber, address.Start, 4, null);
+                    if (res == 0) return new ItemData<uint>((uint)dc.getS32(), 0, QUALITIES.QUALITY_GOOD);
+                }
+                _closed = true; dc = null; _closeTime = DateTime.Now;
+                if (OnError != null)
+                {
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res)));
+                }
+            }
+            return new ItemData<uint>(0, 0, QUALITIES.QUALITY_NOT_CONNECTED); ;
+        }
+
+        public ItemData<ushort> ReadUInt16(DeviceAddress address)
+        {
+            if (dc != null)
+            {
+                int res = -1;
+                lock (_async)
+                {
+                    res = dc.readBytes(address.Area, address.DBNumber, address.Start, 2, null);
+                    if (res == 0) return new ItemData<ushort>((ushort)dc.getS16(), 0, QUALITIES.QUALITY_GOOD);
+                }
+                _closed = true; dc = null; _closeTime = DateTime.Now;
+                if (OnError != null)
+                {
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res)));
+                }
+            }
+            return new ItemData<ushort>(0, 0, QUALITIES.QUALITY_NOT_CONNECTED); ;
         }
 
         public ItemData<short> ReadInt16(DeviceAddress address)
@@ -409,9 +468,9 @@ namespace SiemensPLCDriver
                     if (res == 0) return new ItemData<short>((short)dc.getS16(), 0, QUALITIES.QUALITY_GOOD);
                 }
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null)
+                if (OnError != null)
                 {
-                    OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res)));
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res)));
                 }
             }
             return new ItemData<short>(0, 0, QUALITIES.QUALITY_NOT_CONNECTED); ;
@@ -429,9 +488,9 @@ namespace SiemensPLCDriver
                         return new ItemData<byte>((byte)dc.getS8(), 0, QUALITIES.QUALITY_GOOD);
                 }
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null)
+                if (OnError != null)
                 {
-                    OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res)));
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res)));
                 }
             }
             return new ItemData<byte>(0, 0, QUALITIES.QUALITY_NOT_CONNECTED); ;
@@ -448,7 +507,7 @@ namespace SiemensPLCDriver
                     if (res == 0) return new ItemData<bool>(dc.getS8() != 0, 0, QUALITIES.QUALITY_GOOD);
                 }
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null) { OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res))); }
+                if (OnError != null) { OnError(this, new IOErrorEventArgs(daveStrerror(res))); }
             }
             return new ItemData<bool>(false, 0, QUALITIES.QUALITY_NOT_CONNECTED);
         }
@@ -464,9 +523,9 @@ namespace SiemensPLCDriver
                     if (res == 0) return new ItemData<float>(dc.getFloat(), 0, QUALITIES.QUALITY_GOOD);
                 }
                 _closed = true; dc = null; _closeTime = DateTime.Now;
-                if (OnClose != null)
+                if (OnError != null)
                 {
-                    OnClose(this, new ShutdownRequestEventArgs(daveStrerror(res))); _closeTime = DateTime.Now;
+                    OnError(this, new IOErrorEventArgs(daveStrerror(res))); _closeTime = DateTime.Now;
                 }
             }
             return new ItemData<float>(0, 0, QUALITIES.QUALITY_NOT_CONNECTED); ;
@@ -500,6 +559,24 @@ namespace SiemensPLCDriver
             lock (_async)
             {
                 return dc == null ? -1 : dc.writeBytes(address.Area, address.DBNumber, address.Start, 2, b);
+            }
+        }
+
+        public int WriteUInt16(DeviceAddress address, ushort value)
+        {
+            byte[] b = BitConverter.GetBytes(value); Array.Reverse(b);
+            lock (_async)
+            {
+                return dc == null ? -1 : dc.writeBytes(address.Area, address.DBNumber, address.Start, 2, b);
+            }
+        }
+
+        public int WriteUInt32(DeviceAddress address, uint value)
+        {
+            byte[] b = BitConverter.GetBytes(value); Array.Reverse(b);
+            lock (_async)
+            {
+                return dc == null ? -1 : dc.writeBytes(address.Area, address.DBNumber, address.Start, 4, b);
             }
         }
 
@@ -605,8 +682,13 @@ namespace SiemensPLCDriver
                                     itemArr[i].Value.Byte = (byte)dc.getU8();
                                     break;
                                 case DataType.WORD:
+                                    itemArr[i].Value.Word = (ushort)dc.getS16();
+                                    break;
                                 case DataType.SHORT:
                                     itemArr[i].Value.Int16 = (short)dc.getS16();
+                                    break;
+                                case DataType.DWORD:
+                                    itemArr[i].Value.DWord = (uint)dc.getS32();
                                     break;
                                 case DataType.INT:
                                     itemArr[i].Value.Int32 = dc.getS32();
@@ -681,8 +763,12 @@ namespace SiemensPLCDriver
                                 b = BitConverter.GetBytes(Convert.ToInt16(buffer[i])); Array.Reverse(b);
                                 p2.addVarToWriteRequest(addr.Area, addr.DBNumber, addr.Start, 2, b);
                                 break;
+                            case DataType.DWORD:
+                                b = BitConverter.GetBytes(Convert.ToUInt32(buffer[i])); Array.Reverse(b);
+                                p2.addVarToWriteRequest(addr.Area, addr.DBNumber, addr.Start, 4, b);
+                                break;
                             case DataType.INT:
-                                b = BitConverter.GetBytes((int)Convert.ToDouble(buffer[i])); Array.Reverse(b);
+                                b = BitConverter.GetBytes(Convert.ToInt32(buffer[i])); Array.Reverse(b);
                                 p2.addVarToWriteRequest(addr.Area, addr.DBNumber, addr.Start, 4, b);
                                 break;
                             case DataType.FLOAT:
@@ -703,7 +789,7 @@ namespace SiemensPLCDriver
                     }
                     catch (Exception err)
                     {
-                        if (OnClose != null) OnClose(this, new ShutdownRequestEventArgs(err.Message));//可考虑把相应地址和数值加入
+                        if (OnError != null) OnError(this, new IOErrorEventArgs(err.Message));//可考虑把相应地址和数值加入
                     }
                 }
                 libnodave.resultSet rs = new libnodave.resultSet();
@@ -716,89 +802,7 @@ namespace SiemensPLCDriver
             get { return 10; }
         }
 
-        public event ShutdownRequestEventHandler OnClose;
+        public event IOErrorEventHandler OnError;
     }
 
-    public sealed class NetBytePLCGroup : PLCGroup
-    {
-        public NetBytePLCGroup(short id, string name, int updateRate, bool active, IPLCDriver plcReader)
-        {
-            this._id = id;
-            this._name = name;
-            this._updateRate = updateRate;
-            this._isActive = active;
-            this._plcReader = plcReader;
-            this._server = _plcReader.Parent;
-            this._timer = new Timer();
-            this._changedList = new List<int>();
-            this._cacheReader = new NetByteCacheReader();
-        }
-
-        protected override int Poll()
-        {
-            if (_items == null || _items.Count == 0) return -1;
-            byte[] cache = (byte[])_cacheReader.Cache;
-            int offset = 0;
-            foreach (PDUArea area in _rangeList)
-            {
-                byte[] rcvBytes = _plcReader.ReadBytes(area.Start, (ushort)area.Len);//从PLC读取数据                
-                if (rcvBytes == null)
-                {
-                    //_plcReader.Connect();
-                    return -1;
-                }
-                else
-                {
-                    int index = area.StartIndex;//index指向_items中的Tag元数据
-                    int count = index + area.Count;
-                    while (index < count)
-                    {
-                        DeviceAddress addr = _items[index].Address;
-                        int iByte = addr.CacheIndex;
-                        int iByte1 = iByte - offset;
-                        if (addr.VarType == DataType.BOOL)
-                        {
-                            int tmp = rcvBytes[iByte1] ^ cache[iByte];
-                            DeviceAddress next = addr;
-                            if (tmp != 0)
-                            {
-                                while (addr.Start == next.Start)
-                                {
-                                    if ((tmp & (1 << next.Bit)) > 0) _changedList.Add(index);
-                                    if (++index < count)
-                                        next = _items[index].Address;
-                                    else
-                                        break;
-                                }
-                            }
-                            else
-                            {
-                                while (addr.Start == next.Start && ++index < count)
-                                {
-                                    next = _items[index].Address;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            ushort size = addr.DataSize;
-                            for (int i = 0; i < size; i++)
-                            {
-                                if (rcvBytes[iByte1 + i] != cache[iByte + i])
-                                {
-                                    _changedList.Add(index);
-                                    break;
-                                }
-                            }
-                            index++;
-                        }
-                    }
-                    for (int j = 0; j < rcvBytes.Length; j++)
-                        cache[j + offset] = rcvBytes[j];//将PLC读取的数据写入到CacheReader中
-                }
-                offset += rcvBytes.Length;
-            }
-            return 1;
-        }
-    }
 }
